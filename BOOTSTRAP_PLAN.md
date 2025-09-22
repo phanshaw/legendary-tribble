@@ -187,8 +187,8 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 
 ---
 
-## Phase 8: Vercel Deployment Configuration
-**Goal**: Deploy application to production
+## Phase 8: Vercel Deployment Configuration & Serialization Infrastructure
+**Goal**: Deploy application to production and prepare component serialization foundation
 
 ### Tasks
 - [ ] Configure Vercel project settings
@@ -197,17 +197,23 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 - [ ] Set up PostgreSQL database (Vercel Postgres/Supabase)
 - [ ] Configure file storage (Vercel Blob/S3)
 - [ ] Set up CI/CD pipeline
+- [ ] **NEW: Implement core serialization infrastructure for future components**
+- [ ] **NEW: Create component registry system with type registration**
+- [ ] **NEW: Build migration runner for data version upgrades**
 
 ### Deliverables
 - vercel.json configuration
 - Serverless function setup
 - Database migration scripts
 - Deployment documentation
+- **Component serialization base classes**
+- **Migration testing framework**
 
 ### Success Criteria
 - Application deploys successfully
 - All features work in production
 - Database connects properly
+- **Serialization infrastructure tested and ready for Phase 9-10**
 
 ---
 
@@ -226,23 +232,28 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 - [ ] Create scene sharing/export functionality
 - [ ] Build scene templates/presets system
 - [ ] **CRITICAL: Implement undo/redo for scene editing**
+- [ ] **NEW: Implement SceneStateV2 format with state-based structure**
+- [ ] **NEW: Create migration from V1 (simple) to V2 (state-based) scenes**
 
 ### Deliverables
 - Scene management system
 - State-based presentation engine
 - Scene editor interface
 - Presentation player
+- **Versioned scene state format (V2)**
+- **Scene migration system**
 
 ### Success Criteria
 - Users can create multi-state scenes
 - Smooth transitions between states
 - Scenes persist and reload correctly
 - Presentation mode works smoothly
+- **Old scenes auto-upgrade to new format**
 
 ---
 
 ## Phase 10: Component Architecture System
-**Goal**: Build extensible component system for scene behaviors
+**Goal**: Build extensible component system for scene behaviors with robust versioning
 
 ### Tasks
 - [ ] **CRITICAL: Design component base architecture (ECS pattern)**
@@ -257,13 +268,20 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 - [ ] Create material/appearance component
 - [ ] Build component templates/library system
 - [ ] **CRITICAL: Implement component versioning for backward compatibility**
+- [ ] **NEW: Implement per-component versioning (not scene-level)**
+- [ ] **NEW: Create forward-only migration system for each component type**
+- [ ] **NEW: Build UnknownComponent handler for future/unrecognized types**
+- [ ] **NEW: Add comprehensive migration testing framework**
 
 ### Deliverables
 - Component base classes and interfaces
 - Core component implementations (Transform, Annotation)
 - Component editor UI
-- Component serialization system
+- Component serialization system with versioning
 - Component plugin framework
+- **Component-specific migration chains**
+- **SerializedData wrapper format with type/version metadata**
+- **Component registry with type registration**
 
 ### Success Criteria
 - Components serialize/deserialize reliably
@@ -271,6 +289,9 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 - Component states record per scene state
 - Easy to add new component types
 - Backward compatibility maintained
+- **Old component data auto-migrates to current version**
+- **Unknown components preserved without data loss**
+- **All migrations have test coverage**
 
 ---
 
@@ -365,18 +386,47 @@ interface Component {
 }
 ```
 
-3. **Serialization Strategy**:
+3. **Serialization Strategy (Per-Component Versioning)**:
 ```typescript
+// Core serialization wrapper - each component self-versions
+interface SerializedData<T = any> {
+  _type: string;      // Component type identifier
+  _version: number;   // Schema version for THIS component
+  _data: T;          // Actual component data
+}
+
+// Scene format uses component-agnostic storage
 interface SceneData {
-  version: number
+  version: number  // Scene format version (rarely changes)
   entities: EntityData[]
-  components: ComponentData[]
+  components: SerializedData[]  // Each component self-versioned
   states: StateData[]
   metadata: {
     created: Date
     modified: Date
     author: string
     [key: string]: any
+  }
+}
+
+// Component migration example
+class TransformComponent {
+  static version = 3;
+  static migrations = {
+    1: (data) => ({ ...data, rotation: {x:0, y:0, z:0} }),  // v1→v2
+    2: (data) => ({  // v2→v3: restructure
+      position: {x: data.x, y: data.y, z: data.z},
+      rotation: data.rotation,
+      scale: {x: 1, y: 1, z: 1}
+    })
+  };
+
+  static deserialize(data: SerializedData) {
+    let migrated = data._data;
+    for (let v = data._version; v < this.version; v++) {
+      if (this.migrations[v]) migrated = this.migrations[v](migrated);
+    }
+    return new TransformComponent(migrated);
   }
 }
 ```
@@ -389,7 +439,40 @@ interface SceneData {
    - **Animation**: keyframe sequences
    - **Interaction**: click/hover behaviors
 
-### Schema Evolution Process
+### Component Serialization Evolution Strategy
+**Key Principle**: Component-level versioning, not scene-level
+
+1. **MVP Phase (1-8)**: Simple scene state without components
+   ```typescript
+   interface SceneStateV1 {
+     version: 1;
+     camera: CameraState;
+     models: ModelState[];
+     metadata: Record<string, any>;
+   }
+   ```
+
+2. **Scene Builder Phase (9)**: Add multi-state support
+   ```typescript
+   interface SceneStateV2 {
+     version: 2;
+     states: Array<{ name: string; camera: CameraState; models: ModelState[] }>;
+   }
+   ```
+
+3. **Component Phase (10)**: Introduce self-versioned components
+   - Each component manages its own schema evolution
+   - Scene format remains stable
+   - Forward-only migrations (old → new on load)
+   - Unknown components preserved as-is
+
+4. **Migration Testing Requirements**:
+   - Test every component migration path
+   - Verify unknown component preservation
+   - Ensure no data loss during upgrades
+   - Validate cross-component references
+
+### Database Schema Evolution Process
 1. **Add new feature**: Store in `metadata` JSON field first
 2. **Validate with users**: Gather feedback, iterate quickly
 3. **Stabilize schema**: Create migration for proven fields

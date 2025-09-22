@@ -4,15 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="02c385eb-34dc-4960-9f76-7ae495b5b5d4" name="Changes" comment="GLB analysis">
-      <change beforePath="$PROJECT_DIR$/.gitattributes" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+    <list default="true" id="02c385eb-34dc-4960-9f76-7ae495b5b5d4" name="Changes" comment="Blank project">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CLAUDE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/bootstrap_plan/bootstrap_plan.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/example_data_input/radial-engine-assy.stp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_main.http" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -101,7 +94,17 @@
       <updated>1756516694430</updated>
       <workItem from="1756516695510" duration="1283000" />
       <workItem from="1758435028351" duration="593000" />
+      <workItem from="1758497477008" duration="2120000" />
     </task>
+    <task id="LOCAL-00001" summary="Blank project">
+      <option name="closed" value="true" />
+      <created>1758497657025</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1758497657025</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -120,6 +123,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial commit. Bootstrap baby!" />
-    <option name="LAST_COMMIT_MESSAGE" value="Initial commit. Bootstrap baby!" />
+    <MESSAGE value="Blank project" />
+    <option name="LAST_COMMIT_MESSAGE" value="Blank project" />
   </component>
 </project>

@@ -30,22 +30,37 @@ export function initBabylonScene(canvas: HTMLCanvasElement) {
   camera.attachControl(canvas, true)
   camera.wheelPrecision = 50
   camera.minZ = 0.1
-  camera.maxZ = 1000
+  camera.maxZ = 5000 // Increased to ensure skybox (size 1000) is always visible
 
-  // Create lights
-  const light1 = new BABYLON.HemisphericLight(
-    'light1',
+  // Create enhanced lighting system
+  const hemisphericLight = new BABYLON.HemisphericLight(
+    'hemisphericLight',
     new BABYLON.Vector3(0, 1, 0),
     scene
   )
-  light1.intensity = 0.7
+  hemisphericLight.intensity = 0.5
+  hemisphericLight.diffuse = new BABYLON.Color3(1, 1, 1)
+  hemisphericLight.specular = new BABYLON.Color3(0, 0, 0)
+  hemisphericLight.groundColor = new BABYLON.Color3(0.1, 0.1, 0.15)
 
-  const light2 = new BABYLON.DirectionalLight(
-    'light2',
+  const directionalLight1 = new BABYLON.DirectionalLight(
+    'directionalLight1',
     new BABYLON.Vector3(-1, -2, -1),
     scene
   )
-  light2.intensity = 0.3
+  directionalLight1.intensity = 0.4
+  directionalLight1.diffuse = new BABYLON.Color3(1, 0.98, 0.95)
+
+  const directionalLight2 = new BABYLON.DirectionalLight(
+    'directionalLight2',
+    new BABYLON.Vector3(1, -1, 0.5),
+    scene
+  )
+  directionalLight2.intensity = 0.2
+  directionalLight2.diffuse = new BABYLON.Color3(0.95, 0.95, 1)
+
+  // Setup environment and skybox
+  setupEnvironment(scene)
 
   // Create grid
   createGrid(scene)
@@ -62,6 +77,34 @@ export function initBabylonScene(canvas: HTMLCanvasElement) {
   engine.runRenderLoop(() => {
     scene?.render()
   })
+}
+
+function setupEnvironment(scene: BABYLON.Scene) {
+  // Following BabylonJS best practices for HDR environment setup
+  // Using CreateFromPrefilteredData for optimal performance with .env files
+  const hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+    'https://playground.babylonjs.com/textures/environment.env',
+    scene
+  )
+
+  // Set as scene environment texture for IBL (Image Based Lighting)
+  scene.environmentTexture = hdrTexture
+
+  // Create skybox using the built-in helper method for consistency
+  // Parameters: texture, pbr mode, scale, blur, setGlobal
+  const skybox = scene.createDefaultSkybox(hdrTexture, true, 1000, 0.0, false)
+
+  if (skybox) {
+    skybox.name = 'skybox'
+    skybox.isPickable = false
+
+    // Store reference for toggle functionality
+    scene.metadata = scene.metadata || {}
+    scene.metadata.skybox = skybox
+  }
+
+  // Optional: Set environment intensity for PBR materials
+  scene.environmentIntensity = 1.0
 }
 
 function createGrid(scene: BABYLON.Scene) {
@@ -83,9 +126,11 @@ function createGrid(scene: BABYLON.Scene) {
 function setupViewerControls() {
   const resetBtn = document.getElementById('resetView')
   const toggleGridBtn = document.getElementById('toggleGrid')
+  const toggleSkyboxBtn = document.getElementById('toggleSkybox')
 
   resetBtn?.addEventListener('click', resetCamera)
   toggleGridBtn?.addEventListener('click', toggleGrid)
+  toggleSkyboxBtn?.addEventListener('click', toggleSkybox)
 }
 
 export function resetCamera() {
@@ -104,13 +149,32 @@ export function toggleGrid() {
   }
 }
 
+export function toggleSkybox() {
+  if (!scene) return
+  // The skybox created by createDefaultSkybox is stored in scene metadata
+  const skybox = scene.metadata?.skybox || scene.getMeshByName('skybox')
+  if (skybox) {
+    skybox.isVisible = !skybox.isVisible
+  }
+}
+
 export async function loadModel(file: File) {
   if (!scene) return
 
-  // Remove existing models (except grid and ground)
-  const meshesToRemove = scene.meshes.filter(mesh =>
-    mesh.name !== 'ground' && mesh.id !== 'grid'
-  )
+  // Remove existing models (except grid, ground, and skybox)
+  const meshesToRemove = scene.meshes.filter(mesh => {
+    // Keep these system meshes
+    if (mesh.name === 'ground' ||
+        mesh.id === 'grid' ||
+        mesh.name === 'skybox' ||
+        mesh.name === 'BackgroundSkybox' || // Default name from createDefaultSkybox
+        mesh.name === 'BackgroundPlane' ||   // Potential background plane
+        mesh === scene.metadata?.skybox) {   // Check stored reference
+      return false
+    }
+    // Remove all other meshes (previous models)
+    return true
+  })
   meshesToRemove.forEach(mesh => mesh.dispose())
 
   const url = URL.createObjectURL(file)
@@ -131,11 +195,21 @@ export async function loadModel(file: File) {
 
     // Center and scale model
     if (result.meshes.length > 0) {
-      // Calculate bounding box for all loaded meshes
+      // Calculate bounding box for all loaded meshes (excluding skybox and grid)
       let minX = Infinity, minY = Infinity, minZ = Infinity
       let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity
 
       result.meshes.forEach(mesh => {
+        // Skip system meshes in bounding box calculation
+        if (mesh.name === 'skybox' ||
+            mesh.name === 'BackgroundSkybox' ||
+            mesh.name === 'BackgroundPlane' ||
+            mesh.name === 'ground' ||
+            mesh.id === 'grid' ||
+            mesh === scene.metadata?.skybox) {
+          return
+        }
+
         mesh.computeWorldMatrix(true)
         const boundingInfo = mesh.getBoundingInfo()
         const min = boundingInfo.boundingBox.minimumWorld

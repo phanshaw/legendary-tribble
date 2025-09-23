@@ -17,13 +17,13 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 **Goal**: Establish project structure and development tooling
 
 ### Tasks
-- [ ] Initialize Git repository
-- [ ] Set up frontend project with Vite + TypeScript
-- [ ] Set up Python backend with FastAPI
-- [ ] Configure development environment files (.env, .gitignore)
-- [ ] Create project structure directories
-- [ ] Install core dependencies
-
+- [x] Initialize Git repository
+- [x] Set up frontend project with Vite + TypeScript
+- [x] Set up Python backend with FastAPI
+- [x] Configure development environment files (.env, .gitignore)
+- [x] Create project structure directories
+- [x] Install core dependencies
+ 
 ### Deliverables
 - Basic project structure
 - Package configuration files (package.json, requirements.txt)
@@ -41,12 +41,13 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 **Goal**: Implement basic 3D viewer functionality
 
 ### Tasks
-- [ ] Create BabylonJS scene initialization
-- [ ] Implement camera controls (arc rotate camera)
+- [x] Create BabylonJS scene initialization
+- [x] Implement camera controls (arc rotate camera)
 - [ ] Add lighting system (hemispheric + directional)
-- [ ] Create grid/ground helper
-- [ ] Implement basic file loader for GLTF/GLB
-- [ ] Add viewer controls (reset view, toggle grid)
+- [ ] Add skybox /environment lighting. 
+- [x] Create grid/ground helper
+- [x] Implement basic file loader for GLTF/GLB
+- [x] Add viewer controls (reset view, toggle grid)
 
 ### Deliverables
 - Functional 3D viewer component

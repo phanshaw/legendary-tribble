@@ -43,8 +43,8 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 ### Tasks
 - [x] Create BabylonJS scene initialization
 - [x] Implement camera controls (arc rotate camera)
-- [ ] Add lighting system (hemispheric + directional)
-- [ ] Add skybox /environment lighting. 
+- [x] Add lighting system (hemispheric + directional)
+- [x] Add skybox /environment lighting. 
 - [x] Create grid/ground helper
 - [x] Implement basic file loader for GLTF/GLB
 - [x] Add viewer controls (reset view, toggle grid)
@@ -66,11 +66,10 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 
 ### Tasks
 - [ ] Design and implement navigation bar
-- [ ] Create file upload interface
-- [ ] Build file list sidebar
-- [ ] Implement drag-and-drop file upload
-- [ ] Add file format validation
-- [ ] Create loading states and progress indicators
+- [x] Create file upload interface
+- [x] Build basic file list sidebar
+- [x] Implement drag-and-drop file upload
+- [x] Add file format validation
 
 ### Deliverables
 - Complete UI layout
@@ -224,6 +223,7 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 ### Tasks
 - [ ] **CRITICAL: Design scene state management architecture**
 - [ ] Implement Scene entity with multiple states support
+- [ ] Add performant scene hierarchy view with ui element pooling.
 - [ ] Create state snapshot system (capture scene configuration)
 - [ ] Build state transition/animation system
 - [ ] Develop scene editor UI (add/remove models, position objects)

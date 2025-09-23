@@ -136,16 +136,8 @@ export class SceneView {
 
         // Get root nodes (meshes without parents or with non-mesh parents)
         const rootNodes = scene.meshes.filter(mesh => {
-            // Skip system meshes
-            if (mesh.name === 'ground' ||
-                mesh.id === 'grid' ||
-                mesh.name === 'skybox' ||
-                mesh.name === 'BackgroundSkybox' ||
-                mesh.name === 'BackgroundPlane') {
-                return false
-            }
-
-            return !mesh.parent || !(mesh.parent instanceof BABYLON.AbstractMesh)
+            // Include all root meshes, we'll handle system meshes differently in display
+            return !mesh.parent || !(mesh.parent instanceof BABYLON.AbstractMesh || mesh.parent instanceof BABYLON.TransformNode)
         })
 
         // Also add transform nodes that are roots
@@ -170,15 +162,16 @@ export class SceneView {
 
         const hasChildren = this.hasChildren(node)
         const isExpanded = true // Default expanded for now
+        const isSystemMesh = this.isSystemMesh(node)
 
         // Create node structure
-        element.className = 'tree-node'
+        element.className = `tree-node ${isSystemMesh ? 'system-mesh' : ''}`
         element.style.paddingLeft = `${depth * 20 + 5}px`
         element.innerHTML = `
             <div class="tree-node-content">
                 ${hasChildren ? `<span class="tree-arrow ${isExpanded ? 'expanded' : ''}">▶</span>` : '<span class="tree-spacer"></span>'}
                 <span class="tree-icon">${this.getNodeIcon(node)}</span>
-                <span class="tree-label">${node.name || 'Unnamed'}</span>
+                <span class="tree-label">${this.getDisplayName(node)}</span>
             </div>
         `
 
@@ -193,12 +186,16 @@ export class SceneView {
         // Store in map
         this.nodeMap.set(node, treeNode)
 
-        // Setup click handlers
+        // Setup click handlers (but not for system meshes)
         const content = element.querySelector('.tree-node-content') as HTMLElement
-        content.addEventListener('click', (e) => {
-            e.stopPropagation()
-            this.selectMesh(node)
-        })
+        if (!isSystemMesh) {
+            content.addEventListener('click', (e) => {
+                e.stopPropagation()
+                this.selectMesh(node)
+            })
+        } else {
+            content.style.cursor = 'default'
+        }
 
         // Setup expand/collapse
         if (hasChildren) {
@@ -277,12 +274,56 @@ export class SceneView {
         return element
     }
 
-    private getNodeIcon(node: BABYLON.AbstractMesh | BABYLON.TransformNode): string {
-        if (node instanceof BABYLON.Mesh) {
-            return '📦'
-        } else if (node instanceof BABYLON.TransformNode) {
-            return '🔗'
+    private isSystemMesh(node: BABYLON.AbstractMesh | BABYLON.TransformNode): boolean {
+        return node.name === 'ground' ||
+               node.id === 'grid' ||
+               node.name === 'skybox' ||
+               node.name === 'BackgroundSkybox' ||
+               node.name === 'BackgroundPlane'
+    }
+
+    private getDisplayName(node: BABYLON.AbstractMesh | BABYLON.TransformNode): string {
+        // Special case for the model container - show as "Scene"
+        if (node.name === 'modelContainer') {
+            return 'Scene'
         }
+        return node.name || 'Unnamed'
+    }
+
+    private getNodeIcon(node: BABYLON.AbstractMesh | BABYLON.TransformNode): string {
+        if (this.isSystemMesh(node)) {
+            if (node.id === 'grid' || node.name === 'ground') {
+                return '⚡'  // Grid icon
+            } else if (node.name === 'skybox' || node.name === 'BackgroundSkybox') {
+                return '☁️'  // Sky icon
+            }
+            return '⚙️'  // System icon
+        }
+
+        // Check the actual class name for more accurate type detection
+        const className = node.getClassName()
+
+        if (className === 'Mesh') {
+            // It's specifically a Mesh type
+            return '⊞'  // Squared plus icon for meshes
+        } else if (className === 'TransformNode') {
+            // Special case for the model container
+            if (node.name === 'modelContainer' || node.name === 'Scene') {
+                return '🌐'  // Globe icon for scene container
+            }
+            // Use folder icon for transform nodes (groups)
+            return this.hasChildren(node) ? '📂' : '📁'  // Open folder if has children, closed otherwise
+        } else if (node instanceof BABYLON.AbstractMesh) {
+            // Other mesh types (InstancedMesh, GroundMesh, etc.)
+            if (node.name.toLowerCase().includes('camera')) {
+                return '📷'
+            } else if (node.name.toLowerCase().includes('light')) {
+                return '💡'
+            }
+            // Default to squared plus for any mesh-like object
+            return '⊞'
+        }
+
         return '○'
     }
 
@@ -330,7 +371,7 @@ export class SceneView {
 
         this.inspectorContainer.innerHTML = `
             <div class="inspector-section">
-                <h4>${this.getNodeIcon(node)} ${node.name || 'Unnamed'}</h4>
+                <h4>${this.getNodeIcon(node)} ${this.getDisplayName(node)}</h4>
                 <div class="inspector-property">
                     <label>Type:</label>
                     <span>${node.getClassName()}</span>

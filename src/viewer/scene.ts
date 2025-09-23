@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import '@babylonjs/loaders/OBJ'
 import '@babylonjs/loaders/STL'
+import { renameRootNodes } from './sceneHelpers'
 
 let engine: BABYLON.Engine | null = null
 let scene: BABYLON.Scene | null = null
@@ -199,6 +200,9 @@ export async function loadModel(file: File) {
 
     // Center and scale model
     if (result.meshes.length > 0) {
+      // Rename __root__ nodes to be more descriptive
+      renameRootNodes(result.meshes, result.transformNodes, file.name)
+
       // Calculate bounding box for all loaded meshes (excluding skybox and grid)
       let minX = Infinity, minY = Infinity, minZ = Infinity
       let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity

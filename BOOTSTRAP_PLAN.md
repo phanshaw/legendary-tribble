@@ -65,7 +65,7 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 **Goal**: Build user interface and file handling
 
 ### Tasks
-- [ ] Design and implement navigation bar
+- [x] Design and implement navigation bar
 - [x] Create file upload interface
 - [x] Build basic file list sidebar
 - [x] Implement drag-and-drop file upload

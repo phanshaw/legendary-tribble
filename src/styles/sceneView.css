@@ -14,6 +14,7 @@
     flex-direction: column;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     animation: slideIn 0.3s ease-out;
+    overflow: hidden;  /* Prevent any child overflow */
 }
 
 @keyframes slideIn {
@@ -35,6 +36,7 @@
     align-items: center;
     background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
     border-radius: 12px 12px 0 0;
+    flex-shrink: 0;  /* Never shrink header */
 }
 
 .scene-view-header h3 {
@@ -251,6 +253,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;  /* Contain absolute children */
     isolation: isolate;  /* Create stacking context */
     flex-shrink: 0;  /* Don't shrink when setting explicit height */
 }
@@ -272,7 +275,9 @@
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;  /* Allow flex shrinking */
+    max-height: 100%;  /* Don't exceed parent */
     box-sizing: border-box;
+    position: relative;  /* Contain children */
 }
 
 .inspector-content::-webkit-scrollbar {

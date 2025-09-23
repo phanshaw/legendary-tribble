@@ -92,7 +92,11 @@ function setupEnvironment(scene: BABYLON.Scene) {
 
   // Create skybox using the built-in helper method for consistency
   // Parameters: texture, pbr mode, scale, blur, setGlobal
-  const skybox = scene.createDefaultSkybox(hdrTexture, true, 1000, 0.0, false)
+  const skybox = scene.createDefaultSkybox(
+      hdrTexture,
+      true,
+      1000,
+      0.5, false)
 
   if (skybox) {
     skybox.name = 'skybox'

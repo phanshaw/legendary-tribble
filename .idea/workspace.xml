@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="02c385eb-34dc-4960-9f76-7ae495b5b5d4" name="Changes" comment="Blank project">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/viewer/scene.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/viewer/scene.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,7 +96,7 @@
       <updated>1756516694430</updated>
       <workItem from="1756516695510" duration="1283000" />
       <workItem from="1758435028351" duration="593000" />
-      <workItem from="1758497477008" duration="11523000" />
+      <workItem from="1758497477008" duration="14232000" />
     </task>
     <task id="LOCAL-00001" summary="Blank project">
       <option name="closed" value="true" />

@@ -19,6 +19,8 @@ export class SceneView {
     private poolIndex: number = 0
     private updateTimer: number | null = null
     private isVisible: boolean = false
+    private resizeDivider: HTMLElement | null = null
+    private isResizing: boolean = false
 
     constructor() {
         this.createSceneView()
@@ -36,7 +38,10 @@ export class SceneView {
                 <button class="scene-view-close" title="Close">×</button>
             </div>
             <div class="scene-view-content">
-                <div class="scene-tree-container" id="sceneTreeContainer"></div>
+                <div class="scene-tree-wrapper">
+                    <div class="scene-tree-container" id="sceneTreeContainer"></div>
+                </div>
+                <div class="scene-resize-divider" id="sceneResizeDivider"></div>
                 <div class="scene-inspector" id="sceneInspector">
                     <div class="inspector-header">Inspector</div>
                     <div class="inspector-content">
@@ -50,6 +55,13 @@ export class SceneView {
 
         this.treeContainer = document.getElementById('sceneTreeContainer')
         this.inspectorContainer = this.container.querySelector('.inspector-content')
+        this.resizeDivider = document.getElementById('sceneResizeDivider')
+
+        // Set initial sizes (2/3 for tree, 1/3 for inspector)
+        const treeWrapper = this.container.querySelector('.scene-tree-wrapper') as HTMLElement
+        const inspector = document.getElementById('sceneInspector') as HTMLElement
+
+        // Heights are set via CSS, no need to set them here
 
         // Initially hidden
         this.container.style.display = 'none'
@@ -59,6 +71,9 @@ export class SceneView {
         // Close button
         const closeBtn = this.container?.querySelector('.scene-view-close')
         closeBtn?.addEventListener('click', () => this.toggle())
+
+        // Setup resize divider
+        this.setupResizeDivider()
 
         // Toggle scene view button (add to existing controls)
         const toggleBtn = document.createElement('button')
@@ -91,6 +106,100 @@ export class SceneView {
                 }
             })
         }
+    }
+
+    private setupResizeDivider(): void {
+        if (!this.resizeDivider) return
+
+        let startY = 0
+        let startTreeHeight = 0
+        let startInspectorHeight = 0
+        let totalHeight = 0
+        const treeWrapper = this.container?.querySelector('.scene-tree-wrapper') as HTMLElement
+        const inspector = document.getElementById('sceneInspector') as HTMLElement
+
+        const onMouseDown = (e: MouseEvent) => {
+            e.preventDefault()
+            this.isResizing = true
+            startY = e.clientY
+
+            // Get current heights
+            const treeRect = treeWrapper?.getBoundingClientRect()
+            const inspectorRect = inspector?.getBoundingClientRect()
+            startTreeHeight = treeRect?.height || 0
+            startInspectorHeight = inspectorRect?.height || 0
+
+            // Calculate total available height
+            const contentElement = treeWrapper?.parentElement as HTMLElement
+            totalHeight = contentElement?.clientHeight || 0
+
+            // Subtract divider height from total
+            const dividerHeight = this.resizeDivider?.clientHeight || 4
+            totalHeight = totalHeight - dividerHeight
+
+            document.addEventListener('mousemove', onMouseMove)
+            document.addEventListener('mouseup', onMouseUp)
+            document.body.style.cursor = 'ns-resize'
+            document.body.style.userSelect = 'none' // Prevent text selection during drag
+            this.resizeDivider!.classList.add('resizing')
+        }
+
+        const onMouseMove = (e: MouseEvent) => {
+            if (!this.isResizing) return
+
+            e.preventDefault() // Prevent text selection during drag
+
+            const deltaY = e.clientY - startY
+            const minHeight = 100 // Minimum height for each panel
+            const maxPanelHeight = totalHeight * 0.66 // Max 2/3 for any panel
+
+            let newTreeHeight = startTreeHeight + deltaY
+            let newInspectorHeight = totalHeight - newTreeHeight
+
+            // Enforce minimum heights
+            if (newTreeHeight < minHeight) {
+                newTreeHeight = minHeight
+                newInspectorHeight = totalHeight - minHeight
+            }
+            if (newInspectorHeight < minHeight) {
+                newInspectorHeight = minHeight
+                newTreeHeight = totalHeight - minHeight
+            }
+
+            // Enforce maximum height for tree (2/3 of total)
+            if (newTreeHeight > maxPanelHeight) {
+                newTreeHeight = maxPanelHeight
+                newInspectorHeight = totalHeight - maxPanelHeight
+            }
+
+            // Enforce maximum height for inspector (2/3 of total)
+            if (newInspectorHeight > maxPanelHeight) {
+                newInspectorHeight = maxPanelHeight
+                newTreeHeight = totalHeight - maxPanelHeight
+            }
+
+            // Apply heights directly and remove max-height to allow resize
+            if (treeWrapper) {
+                treeWrapper.style.flex = 'none'
+                treeWrapper.style.height = `${newTreeHeight}px`
+                treeWrapper.style.maxHeight = 'none' // Override CSS max-height during resize
+            }
+            if (inspector) {
+                inspector.style.flex = 'none'
+                inspector.style.height = `${newInspectorHeight}px`
+            }
+        }
+
+        const onMouseUp = () => {
+            this.isResizing = false
+            document.removeEventListener('mousemove', onMouseMove)
+            document.removeEventListener('mouseup', onMouseUp)
+            document.body.style.cursor = ''
+            document.body.style.userSelect = ''
+            this.resizeDivider?.classList.remove('resizing')
+        }
+
+        this.resizeDivider.addEventListener('mousedown', onMouseDown)
     }
 
     private startSceneMonitoring(): void {

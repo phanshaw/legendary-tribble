@@ -421,7 +421,7 @@ export class SceneView {
                 return '🌐'  // Globe icon for scene container
             }
             // Use axis icon for transform nodes
-            return '⟳'  // Axis/transform icon (alternative options: ⟲, ⇢, ➲, ⤹, ↻, ⊳)
+            return '✣'  // Four balloon-spoked asterisk for transform/axis
         } else if (node instanceof BABYLON.AbstractMesh) {
             // Other mesh types (InstancedMesh, GroundMesh, etc.)
             if (node.name.toLowerCase().includes('camera')) {

@@ -420,8 +420,8 @@ export class SceneView {
             if (node.name === 'modelContainer' || node.name === 'Scene') {
                 return '🌐'  // Globe icon for scene container
             }
-            // Use folder icon for transform nodes (groups)
-            return this.hasChildren(node) ? '📂' : '📁'  // Open folder if has children, closed otherwise
+            // Use axis icon for transform nodes
+            return '⟳'  // Axis/transform icon (alternative options: ⟲, ⇢, ➲, ⤹, ↻, ⊳)
         } else if (node instanceof BABYLON.AbstractMesh) {
             // Other mesh types (InstancedMesh, GroundMesh, etc.)
             if (node.name.toLowerCase().includes('camera')) {

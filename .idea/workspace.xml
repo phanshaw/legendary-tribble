@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="02c385eb-34dc-4960-9f76-7ae495b5b5d4" name="Changes" comment="Update plan">
-      <change beforePath="$PROJECT_DIR$/src/styles/sceneView.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/styles/sceneView.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/sceneView.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/sceneView.ts" afterDir="false" />
-    </list>
+    <list default="true" id="02c385eb-34dc-4960-9f76-7ae495b5b5d4" name="Changes" comment="Update plan" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

@@ -82,6 +82,21 @@ A BabylonJS-based single-page application for viewing CAD files with user authen
 - File list displays uploaded files
 - UI is responsive on desktop and tablet
 
+## Phase 3.5: Scene View 
+**Goal**: Add basic scene inspection tooling. 
+
+### Tasks
+- [ ] Performant Scene Hierarchy View using pooled GUI components, including support for showing parent/child relationships. 
+- [ ] Support for selecting different objects in the scene view. 
+- [ ] Basic inspector UI for scene objects showing name of object.
+
+### Deliverables
+- Performant scene view inspector. 
+- Performant object inspector. 
+
+### Success Criteria
+- Users able to inspect their scene.
+
 ---
 
 ## Phase 4: Backend Core Setup

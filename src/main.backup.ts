@@ -1,9 +1,7 @@
 import './styles/main.css'
-import './styles/sceneView.css'
 import { initBabylonScene } from './viewer/scene'
 import { initAuth } from './auth/auth'
 import { initFileManager } from './files/fileManager'
-import { SceneView } from './ui/sceneView'
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('CAD Viewer initializing...')
@@ -14,17 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initBabylonScene(canvas)
   }
 
-  // Initialize Scene View Inspector
-  const sceneView = new SceneView()
-
   // Initialize authentication
   initAuth()
 
   // Initialize file management
   initFileManager()
 
-  // Make scene view globally accessible for debugging
-  (window as any).sceneView = sceneView
-
-  console.log('CAD Viewer ready with Scene Inspector')
+  console.log('CAD Viewer ready')
 })

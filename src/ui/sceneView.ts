@@ -1,0 +1,391 @@
+import * as BABYLON from '@babylonjs/core'
+import { getScene } from '../viewer/scene'
+
+interface TreeNode {
+    mesh: BABYLON.AbstractMesh | BABYLON.TransformNode
+    element: HTMLElement
+    childrenContainer: HTMLElement | null
+    expanded: boolean
+    children: TreeNode[]
+}
+
+export class SceneView {
+    private container: HTMLElement | null = null
+    private treeContainer: HTMLElement | null = null
+    private inspectorContainer: HTMLElement | null = null
+    private selectedNode: BABYLON.AbstractMesh | BABYLON.TransformNode | null = null
+    private nodeMap: Map<BABYLON.AbstractMesh | BABYLON.TransformNode, TreeNode> = new Map()
+    private elementPool: HTMLElement[] = []
+    private poolIndex: number = 0
+    private updateTimer: number | null = null
+    private isVisible: boolean = false
+
+    constructor() {
+        this.createSceneView()
+        this.setupEventListeners()
+        this.startSceneMonitoring()
+    }
+
+    private createSceneView(): void {
+        // Create main container
+        this.container = document.createElement('div')
+        this.container.className = 'scene-view-panel'
+        this.container.innerHTML = `
+            <div class="scene-view-header">
+                <h3>Scene Hierarchy</h3>
+                <button class="scene-view-close" title="Close">×</button>
+            </div>
+            <div class="scene-view-content">
+                <div class="scene-tree-container" id="sceneTreeContainer"></div>
+                <div class="scene-inspector" id="sceneInspector">
+                    <div class="inspector-header">Inspector</div>
+                    <div class="inspector-content">
+                        <p class="inspector-placeholder">Select an object to inspect</p>
+                    </div>
+                </div>
+            </div>
+        `
+
+        document.body.appendChild(this.container)
+
+        this.treeContainer = document.getElementById('sceneTreeContainer')
+        this.inspectorContainer = this.container.querySelector('.inspector-content')
+
+        // Initially hidden
+        this.container.style.display = 'none'
+    }
+
+    private setupEventListeners(): void {
+        // Close button
+        const closeBtn = this.container?.querySelector('.scene-view-close')
+        closeBtn?.addEventListener('click', () => this.toggle())
+
+        // Toggle scene view button (add to existing controls)
+        const toggleBtn = document.createElement('button')
+        toggleBtn.id = 'toggleSceneView'
+        toggleBtn.className = 'control-btn'
+        toggleBtn.title = 'Toggle Scene View'
+        toggleBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="5"/>
+                <rect x="3" y="12" width="18" height="9"/>
+                <line x1="7" y1="16" x2="11" y2="16"/>
+                <line x1="7" y1="18" x2="11" y2="18"/>
+            </svg>
+            Scene
+        `
+
+        // Add to viewer controls
+        const viewerControls = document.querySelector('.viewer-controls')
+        if (viewerControls) {
+            viewerControls.appendChild(toggleBtn)
+            toggleBtn.addEventListener('click', () => this.toggle())
+        }
+
+        // Scene selection
+        const scene = getScene()
+        if (scene) {
+            scene.onPointerObservable.add((pointerInfo) => {
+                if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERPICK && pointerInfo.pickInfo?.hit) {
+                    this.selectMesh(pointerInfo.pickInfo.pickedMesh)
+                }
+            })
+        }
+    }
+
+    private startSceneMonitoring(): void {
+        // Monitor scene changes with debouncing
+        setInterval(() => {
+            if (this.isVisible) {
+                if (this.updateTimer) {
+                    clearTimeout(this.updateTimer)
+                }
+                this.updateTimer = window.setTimeout(() => {
+                    this.refreshSceneTree()
+                }, 100)
+            }
+        }, 500)
+    }
+
+    public toggle(): void {
+        this.isVisible = !this.isVisible
+        if (this.container) {
+            this.container.style.display = this.isVisible ? 'block' : 'none'
+            if (this.isVisible) {
+                this.refreshSceneTree()
+            }
+        }
+
+        // Update button state
+        const btn = document.getElementById('toggleSceneView')
+        if (btn) {
+            btn.classList.toggle('active', this.isVisible)
+        }
+    }
+
+    private refreshSceneTree(): void {
+        const scene = getScene()
+        if (!scene || !this.treeContainer) return
+
+        // Reset pool
+        this.poolIndex = 0
+        this.nodeMap.clear()
+
+        // Clear container
+        this.treeContainer.innerHTML = ''
+
+        // Get root nodes (meshes without parents or with non-mesh parents)
+        const rootNodes = scene.meshes.filter(mesh => {
+            // Skip system meshes
+            if (mesh.name === 'ground' ||
+                mesh.id === 'grid' ||
+                mesh.name === 'skybox' ||
+                mesh.name === 'BackgroundSkybox' ||
+                mesh.name === 'BackgroundPlane') {
+                return false
+            }
+
+            return !mesh.parent || !(mesh.parent instanceof BABYLON.AbstractMesh)
+        })
+
+        // Also add transform nodes that are roots
+        scene.transformNodes.forEach(node => {
+            if (!node.parent || !(node.parent instanceof BABYLON.AbstractMesh || node.parent instanceof BABYLON.TransformNode)) {
+                rootNodes.push(node as any)
+            }
+        })
+
+        // Build tree for each root
+        rootNodes.forEach(root => {
+            const treeNode = this.createTreeNode(root, 0)
+            if (treeNode) {
+                this.treeContainer!.appendChild(treeNode.element)
+            }
+        })
+    }
+
+    private createTreeNode(node: BABYLON.AbstractMesh | BABYLON.TransformNode, depth: number): TreeNode | null {
+        // Get or create element from pool
+        const element = this.getPooledElement()
+
+        const hasChildren = this.hasChildren(node)
+        const isExpanded = true // Default expanded for now
+
+        // Create node structure
+        element.className = 'tree-node'
+        element.style.paddingLeft = `${depth * 20 + 5}px`
+        element.innerHTML = `
+            <div class="tree-node-content">
+                ${hasChildren ? `<span class="tree-arrow ${isExpanded ? 'expanded' : ''}">▶</span>` : '<span class="tree-spacer"></span>'}
+                <span class="tree-icon">${this.getNodeIcon(node)}</span>
+                <span class="tree-label">${node.name || 'Unnamed'}</span>
+            </div>
+        `
+
+        const treeNode: TreeNode = {
+            mesh: node,
+            element,
+            childrenContainer: null,
+            expanded: isExpanded,
+            children: []
+        }
+
+        // Store in map
+        this.nodeMap.set(node, treeNode)
+
+        // Setup click handlers
+        const content = element.querySelector('.tree-node-content') as HTMLElement
+        content.addEventListener('click', (e) => {
+            e.stopPropagation()
+            this.selectMesh(node)
+        })
+
+        // Setup expand/collapse
+        if (hasChildren) {
+            const arrow = element.querySelector('.tree-arrow')
+            arrow?.addEventListener('click', (e) => {
+                e.stopPropagation()
+                this.toggleExpand(treeNode)
+            })
+
+            // Create children container
+            if (isExpanded) {
+                treeNode.childrenContainer = document.createElement('div')
+                treeNode.childrenContainer.className = 'tree-children'
+                element.appendChild(treeNode.childrenContainer)
+
+                // Add children
+                this.addChildren(treeNode, depth + 1)
+            }
+        }
+
+        return treeNode
+    }
+
+    private hasChildren(node: BABYLON.AbstractMesh | BABYLON.TransformNode): boolean {
+        return node.getChildren().length > 0
+    }
+
+    private addChildren(parentNode: TreeNode, depth: number): void {
+        if (!parentNode.childrenContainer) return
+
+        const children = parentNode.mesh.getChildren()
+        children.forEach(child => {
+            if (child instanceof BABYLON.AbstractMesh || child instanceof BABYLON.TransformNode) {
+                const childNode = this.createTreeNode(child, depth)
+                if (childNode) {
+                    parentNode.children.push(childNode)
+                    parentNode.childrenContainer!.appendChild(childNode.element)
+                }
+            }
+        })
+    }
+
+    private toggleExpand(node: TreeNode): void {
+        node.expanded = !node.expanded
+        const arrow = node.element.querySelector('.tree-arrow')
+
+        if (node.expanded) {
+            arrow?.classList.add('expanded')
+
+            if (!node.childrenContainer) {
+                node.childrenContainer = document.createElement('div')
+                node.childrenContainer.className = 'tree-children'
+                node.element.appendChild(node.childrenContainer)
+
+                const depth = Math.floor((parseInt(node.element.style.paddingLeft) - 5) / 20) + 1
+                this.addChildren(node, depth)
+            } else {
+                node.childrenContainer.style.display = 'block'
+            }
+        } else {
+            arrow?.classList.remove('expanded')
+            if (node.childrenContainer) {
+                node.childrenContainer.style.display = 'none'
+            }
+        }
+    }
+
+    private getPooledElement(): HTMLElement {
+        if (this.poolIndex < this.elementPool.length) {
+            return this.elementPool[this.poolIndex++]
+        }
+
+        const element = document.createElement('div')
+        this.elementPool.push(element)
+        this.poolIndex++
+        return element
+    }
+
+    private getNodeIcon(node: BABYLON.AbstractMesh | BABYLON.TransformNode): string {
+        if (node instanceof BABYLON.Mesh) {
+            return '📦'
+        } else if (node instanceof BABYLON.TransformNode) {
+            return '🔗'
+        }
+        return '○'
+    }
+
+    private selectMesh(mesh: BABYLON.AbstractMesh | BABYLON.TransformNode | null): void {
+        if (!mesh) return
+
+        // Update selection state
+        this.selectedNode = mesh
+
+        // Update tree highlighting
+        this.nodeMap.forEach((node, nodeMesh) => {
+            if (nodeMesh === mesh) {
+                node.element.classList.add('selected')
+            } else {
+                node.element.classList.remove('selected')
+            }
+        })
+
+        // Update inspector
+        this.updateInspector(mesh)
+
+        // Highlight in scene
+        const scene = getScene()
+        if (scene) {
+            // Clear previous highlights
+            scene.meshes.forEach(m => {
+                if (m.material && 'emissiveColor' in m.material) {
+                    (m.material as any).emissiveColor = new BABYLON.Color3(0, 0, 0)
+                }
+            })
+
+            // Highlight selected
+            if (mesh instanceof BABYLON.AbstractMesh && mesh.material && 'emissiveColor' in mesh.material) {
+                (mesh.material as any).emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.5)
+            }
+        }
+    }
+
+    private updateInspector(node: BABYLON.AbstractMesh | BABYLON.TransformNode): void {
+        if (!this.inspectorContainer) return
+
+        const pos = node.position
+        const rot = node.rotation
+        const scale = node.scaling
+
+        this.inspectorContainer.innerHTML = `
+            <div class="inspector-section">
+                <h4>${this.getNodeIcon(node)} ${node.name || 'Unnamed'}</h4>
+                <div class="inspector-property">
+                    <label>Type:</label>
+                    <span>${node.getClassName()}</span>
+                </div>
+                <div class="inspector-property">
+                    <label>ID:</label>
+                    <span>${node.id}</span>
+                </div>
+            </div>
+
+            <div class="inspector-section">
+                <h5>Transform</h5>
+                <div class="inspector-property">
+                    <label>Position:</label>
+                    <span>X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)}</span>
+                </div>
+                <div class="inspector-property">
+                    <label>Rotation:</label>
+                    <span>X: ${rot.x.toFixed(2)}, Y: ${rot.y.toFixed(2)}, Z: ${rot.z.toFixed(2)}</span>
+                </div>
+                <div class="inspector-property">
+                    <label>Scale:</label>
+                    <span>X: ${scale.x.toFixed(2)}, Y: ${scale.y.toFixed(2)}, Z: ${scale.z.toFixed(2)}</span>
+                </div>
+            </div>
+
+            ${node instanceof BABYLON.AbstractMesh ? `
+                <div class="inspector-section">
+                    <h5>Mesh Info</h5>
+                    <div class="inspector-property">
+                        <label>Vertices:</label>
+                        <span>${node.getTotalVertices()}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <label>Faces:</label>
+                        <span>${node.getTotalIndices() / 3}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <label>Material:</label>
+                        <span>${node.material?.name || 'None'}</span>
+                    </div>
+                </div>
+            ` : ''}
+
+            <div class="inspector-section">
+                <h5>Hierarchy</h5>
+                <div class="inspector-property">
+                    <label>Parent:</label>
+                    <span>${node.parent?.name || 'None'}</span>
+                </div>
+                <div class="inspector-property">
+                    <label>Children:</label>
+                    <span>${node.getChildren().length}</span>
+                </div>
+            </div>
+        `
+    }
+}

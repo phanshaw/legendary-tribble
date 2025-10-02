@@ -203,17 +203,41 @@ export class SceneView {
     }
 
     private startSceneMonitoring(): void {
-        // Monitor scene changes with debouncing
-        setInterval(() => {
-            if (this.isVisible) {
-                if (this.updateTimer) {
-                    clearTimeout(this.updateTimer)
-                }
-                this.updateTimer = window.setTimeout(() => {
-                    this.refreshSceneTree()
-                }, 100)
+        // Use BabylonJS observers to detect actual scene changes
+        const scene = getScene()
+        if (!scene) return
+
+        // Debounced refresh function
+        const debouncedRefresh = () => {
+            if (this.updateTimer) {
+                clearTimeout(this.updateTimer)
             }
-        }, 500)
+            this.updateTimer = window.setTimeout(() => {
+                if (this.isVisible) {
+                    this.refreshSceneTree()
+                }
+            }, 100)
+        }
+
+        // Listen for mesh additions
+        scene.onNewMeshAddedObservable.add(() => {
+            debouncedRefresh()
+        })
+
+        // Listen for mesh removals
+        scene.onMeshRemovedObservable.add(() => {
+            debouncedRefresh()
+        })
+
+        // Listen for transform node additions
+        scene.onNewTransformNodeAddedObservable.add(() => {
+            debouncedRefresh()
+        })
+
+        // Listen for transform node removals
+        scene.onTransformNodeRemovedObservable.add(() => {
+            debouncedRefresh()
+        })
     }
 
     public toggle(): void {
@@ -236,6 +260,12 @@ export class SceneView {
         const scene = getScene()
         if (!scene || !this.treeContainer) return
 
+        // Save current expand/collapse states before clearing
+        const expandStates = new Map<string, boolean>()
+        this.nodeMap.forEach((treeNode, mesh) => {
+            expandStates.set(mesh.uniqueId.toString(), treeNode.expanded)
+        })
+
         // Reset pool
         this.poolIndex = 0
         this.nodeMap.clear()
@@ -256,21 +286,24 @@ export class SceneView {
             }
         })
 
-        // Build tree for each root
+        // Build tree for each root, restoring expand states
         rootNodes.forEach(root => {
-            const treeNode = this.createTreeNode(root, 0)
+            const treeNode = this.createTreeNode(root, 0, expandStates)
             if (treeNode) {
                 this.treeContainer!.appendChild(treeNode.element)
             }
         })
     }
 
-    private createTreeNode(node: BABYLON.AbstractMesh | BABYLON.TransformNode, depth: number): TreeNode | null {
+    private createTreeNode(node: BABYLON.AbstractMesh | BABYLON.TransformNode, depth: number, expandStates?: Map<string, boolean>): TreeNode | null {
         // Get or create element from pool
         const element = this.getPooledElement()
 
         const hasChildren = this.hasChildren(node)
-        const isExpanded = true // Default expanded for now
+        // Restore previous expand state if available, otherwise default to true
+        const isExpanded = expandStates?.has(node.uniqueId.toString())
+            ? expandStates.get(node.uniqueId.toString())!
+            : true
         const isSystemMesh = this.isSystemMesh(node)
 
         // Create node structure
@@ -321,7 +354,7 @@ export class SceneView {
                 element.appendChild(treeNode.childrenContainer)
 
                 // Add children
-                this.addChildren(treeNode, depth + 1)
+                this.addChildren(treeNode, depth + 1, expandStates)
             }
         }
 
@@ -332,13 +365,13 @@ export class SceneView {
         return node.getChildren().length > 0
     }
 
-    private addChildren(parentNode: TreeNode, depth: number): void {
+    private addChildren(parentNode: TreeNode, depth: number, expandStates?: Map<string, boolean>): void {
         if (!parentNode.childrenContainer) return
 
         const children = parentNode.mesh.getChildren()
         children.forEach(child => {
             if (child instanceof BABYLON.AbstractMesh || child instanceof BABYLON.TransformNode) {
-                const childNode = this.createTreeNode(child, depth)
+                const childNode = this.createTreeNode(child, depth, expandStates)
                 if (childNode) {
                     parentNode.children.push(childNode)
                     parentNode.childrenContainer!.appendChild(childNode.element)

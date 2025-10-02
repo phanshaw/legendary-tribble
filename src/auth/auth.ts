@@ -1,4 +1,4 @@
-import { clearLoadedModels } from '../viewer/scene'
+import { clearLoadedModels, resizeCanvas } from '../viewer/scene'
 import { loadUserFiles } from '../files/fileManager'
 
 interface User {
@@ -100,6 +100,9 @@ export function initAuth() {
   function showMainApp() {
     landingPage?.classList.add('hidden')
     mainApp?.classList.remove('hidden')
+
+    // Resize canvas now that it's visible
+    setTimeout(() => resizeCanvas(), 100)
   }
 
   // Store showMainApp for use in other functions

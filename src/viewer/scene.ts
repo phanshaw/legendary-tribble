@@ -16,6 +16,9 @@ export function initBabylonScene(canvas: HTMLCanvasElement) {
     adaptToDeviceRatio: true
   })
 
+  // Don't set canvas size here - it may be hidden and have 0 size
+  // Will be set when main app becomes visible
+
   // Create scene
   scene = new BABYLON.Scene(engine)
   scene.clearColor = new BABYLON.Color4(0.1, 0.1, 0.1, 1)
@@ -72,7 +75,11 @@ export function initBabylonScene(canvas: HTMLCanvasElement) {
 
   // Resize handling
   window.addEventListener('resize', () => {
-    engine?.resize()
+    if (canvas && engine) {
+      canvas.width = canvas.clientWidth
+      canvas.height = canvas.clientHeight
+      engine.resize()
+    }
   })
 
   // Render loop
@@ -332,4 +339,13 @@ export function getScene() {
 
 export function getEngine() {
   return engine
+}
+
+export function resizeCanvas() {
+  const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement
+  if (canvas && engine && canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+    canvas.width = canvas.clientWidth
+    canvas.height = canvas.clientHeight
+    engine.resize()
+  }
 }

@@ -134,7 +134,7 @@ body {
 }
 
 .modal {
-  display: none;
+  display: flex;
   position: fixed;
   z-index: 1000;
   left: 0;
@@ -142,19 +142,22 @@ body {
   width: 100%;
   height: 100%;
   background-color: rgba(0,0,0,0.4);
+  justify-content: center;
+  align-items: center;
 }
 
 .modal.hidden {
-  display: none;
+  display: none !important;
 }
 
 .modal-content {
   background-color: #fefefe;
-  margin: 15% auto;
   padding: 2rem;
   border-radius: 8px;
   width: 400px;
   max-width: 90%;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .close {
@@ -195,4 +198,157 @@ input:focus {
 .viewer-container.drag-over {
   border: 3px dashed #3498db;
   background: rgba(52, 152, 219, 0.1);
+}
+
+/* Landing Page Styles */
+.landing-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.landing-nav {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.landing-logo {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #fff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.landing-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 6rem 0 4rem;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  opacity: 0.9;
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.6;
+}
+
+.hero-cta {
+  margin-top: 2rem;
+}
+
+.btn-lg {
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.features {
+  padding: 4rem 0;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  transition: transform 0.3s, background 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.feature-card p {
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+/* Auth Modal Improvements */
+.auth-modal {
+  width: 450px;
+  max-width: 90%;
+}
+
+.auth-subtitle {
+  color: #666;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #666;
+}
+
+.auth-switch a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+.password-hint {
+  color: #666;
+  font-size: 0.85em;
+  margin-top: -0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,9 +1,9 @@
 import { loadModel } from '../viewer/scene'
 import { getAuthToken } from '../auth/auth'
 
-const API_BASE_URL = '/api'
+const API_BASE_URL = 'http://localhost:8000/api/v1'
 
-export function initFileManager() {
+function initFileManager() {
   const uploadBtn = document.getElementById('uploadBtn')
   const fileInput = document.getElementById('fileInput') as HTMLInputElement
   const fileList = document.getElementById('fileList')
@@ -112,7 +112,7 @@ async function handleFileUpload(file: File) {
   }
 }
 
-async function loadUserFiles() {
+export async function loadUserFiles() {
   const token = getAuthToken()
   if (!token) return
 
@@ -124,10 +124,12 @@ async function loadUserFiles() {
     })
 
     if (response.ok) {
-      const files = await response.json()
+      const data = await response.json()
       const fileList = document.getElementById('fileList')
       if (fileList) {
         fileList.innerHTML = ''
+        // Handle paginated response - backend returns {items: [], total: n, ...}
+        const files = data.items || data
         files.forEach(addFileToList)
       }
     }
@@ -186,3 +188,7 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
+
+// Export as both named and default
+export { initFileManager }
+export default initFileManager

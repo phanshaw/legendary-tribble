@@ -7,6 +7,8 @@ import { SceneView } from './ui/sceneView'
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('CAD Viewer initializing...')
+  console.log('initFileManager type:', typeof initFileManager)
+  console.log('initFileManager value:', initFileManager)
 
   // Initialize BabylonJS scene
   const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement
@@ -21,7 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
   initAuth()
 
   // Initialize file management
-  initFileManager()
+  try {
+    if (typeof initFileManager === 'function') {
+      initFileManager()
+      console.log('File manager initialized successfully')
+    } else {
+      console.error('initFileManager is not a function:', initFileManager)
+    }
+  } catch (error) {
+    console.error('Error initializing file manager:', error)
+  }
 
   // Make scene view globally accessible for debugging
   (window as any).sceneView = sceneView

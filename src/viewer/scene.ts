@@ -9,10 +9,11 @@ let scene: BABYLON.Scene | null = null
 let camera: BABYLON.ArcRotateCamera | null = null
 
 export function initBabylonScene(canvas: HTMLCanvasElement) {
-  // Create engine
+  // Create engine with high DPI support
   engine = new BABYLON.Engine(canvas, true, {
     preserveDrawingBuffer: true,
-    stencil: true
+    stencil: true,
+    adaptToDeviceRatio: true
   })
 
   // Create scene
@@ -292,6 +293,37 @@ export async function loadModel(file: File) {
   } finally {
     URL.revokeObjectURL(url)
   }
+}
+
+export function clearLoadedModels() {
+  if (!scene) return
+
+  // Remove all loaded models (except grid, ground, and skybox)
+  const meshesToRemove = scene.meshes.filter(mesh => {
+    // Keep these system meshes (grid has both name='ground' and id='grid')
+    if (mesh.name === 'ground' ||
+        mesh.id === 'grid' ||
+        mesh.name === 'skybox' ||
+        mesh.name === 'BackgroundSkybox' ||
+        mesh.name === 'BackgroundPlane' ||
+        mesh === scene?.metadata?.skybox) {
+      return false
+    }
+    // Remove all other meshes (loaded models)
+    return true
+  })
+
+  meshesToRemove.forEach(mesh => mesh.dispose())
+
+  // Only remove the modelContainer transform node used for loaded models
+  const transformNodesToRemove = scene.transformNodes.filter(node => {
+    return node.name === 'modelContainer'
+  })
+
+  transformNodesToRemove.forEach(node => node.dispose())
+
+  // Reset camera to default position
+  resetCamera()
 }
 
 export function getScene() {

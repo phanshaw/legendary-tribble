@@ -1,3 +1,6 @@
+import { clearLoadedModels } from '../viewer/scene'
+import { loadUserFiles } from '../files/fileManager'
+
 interface User {
   id: string
   name: string
@@ -5,42 +8,70 @@ interface User {
 }
 
 let currentUser: User | null = null
-const API_BASE_URL = '/api'
+const API_BASE_URL = 'http://localhost:8000/api/v1'
 
 export function initAuth() {
+  const landingPage = document.getElementById('landingPage')
+  const mainApp = document.getElementById('mainApp')
   const loginBtn = document.getElementById('loginBtn')
   const logoutBtn = document.getElementById('logoutBtn')
-  const loginModal = document.getElementById('loginModal')
+  const authModal = document.getElementById('authModal')
   const closeModal = document.querySelector('.close')
+  const loginFormContainer = document.getElementById('loginFormContainer')
+  const registerFormContainer = document.getElementById('registerFormContainer')
   const loginForm = document.getElementById('loginForm') as HTMLFormElement
   const registerForm = document.getElementById('registerForm') as HTMLFormElement
   const switchToRegister = document.getElementById('switchToRegister')
   const switchToLogin = document.getElementById('switchToLogin')
+  const uploadBtn = document.getElementById('uploadBtn')
+
+  // Landing page buttons
+  const landingLoginBtn = document.getElementById('landingLoginBtn')
+  const landingGetStartedBtn = document.getElementById('landingGetStartedBtn')
+  const heroCTABtn = document.getElementById('heroCTABtn')
+
+  // Disable upload button by default (will be enabled after login)
+  if (uploadBtn) {
+    uploadBtn.setAttribute('disabled', 'true')
+    uploadBtn.style.opacity = '0.5'
+    uploadBtn.style.cursor = 'not-allowed'
+  }
 
   // Check for existing session
   checkSession()
 
-  // Event listeners
+  // Landing page event listeners
+  landingLoginBtn?.addEventListener('click', () => {
+    showAuthModal('login')
+  })
+
+  landingGetStartedBtn?.addEventListener('click', () => {
+    showAuthModal('register')
+  })
+
+  heroCTABtn?.addEventListener('click', () => {
+    showAuthModal('register')
+  })
+
+  // Main app event listeners
   loginBtn?.addEventListener('click', () => {
-    loginModal?.classList.remove('hidden')
+    showAuthModal('login')
   })
 
   closeModal?.addEventListener('click', () => {
-    loginModal?.classList.add('hidden')
+    authModal?.classList.add('hidden')
   })
 
   logoutBtn?.addEventListener('click', logout)
 
   switchToRegister?.addEventListener('click', (e) => {
     e.preventDefault()
-    loginForm?.classList.add('hidden')
-    registerForm?.classList.remove('hidden')
+    showAuthModal('register')
   })
 
   switchToLogin?.addEventListener('click', (e) => {
     e.preventDefault()
-    registerForm?.classList.add('hidden')
-    loginForm?.classList.remove('hidden')
+    showAuthModal('login')
   })
 
   loginForm?.addEventListener('submit', handleLogin)
@@ -48,10 +79,31 @@ export function initAuth() {
 
   // Close modal on outside click
   window.addEventListener('click', (e) => {
-    if (e.target === loginModal) {
-      loginModal?.classList.add('hidden')
+    if (e.target === authModal) {
+      authModal?.classList.add('hidden')
     }
   })
+
+  // Helper function to show auth modal
+  function showAuthModal(type: 'login' | 'register') {
+    if (type === 'login') {
+      loginFormContainer?.classList.remove('hidden')
+      registerFormContainer?.classList.add('hidden')
+    } else {
+      loginFormContainer?.classList.add('hidden')
+      registerFormContainer?.classList.remove('hidden')
+    }
+    authModal?.classList.remove('hidden')
+  }
+
+  // Helper function to show main app
+  function showMainApp() {
+    landingPage?.classList.add('hidden')
+    mainApp?.classList.remove('hidden')
+  }
+
+  // Store showMainApp for use in other functions
+  (window as any).showMainApp = showMainApp
 }
 
 async function handleLogin(e: Event) {
@@ -72,7 +124,12 @@ async function handleLogin(e: Event) {
       localStorage.setItem('token', data.access_token)
       currentUser = data.user
       updateUIForLoggedInUser()
-      document.getElementById('loginModal')?.classList.add('hidden')
+      document.getElementById('authModal')?.classList.add('hidden')
+
+      // Transition to main app
+      if ((window as any).showMainApp) {
+        (window as any).showMainApp()
+      }
     } else {
       alert('Invalid credentials')
     }
@@ -93,7 +150,14 @@ async function handleRegister(e: Event) {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        password_confirm: password,  // Add password confirmation
+        is_active: true,
+        role: 'user'
+      })
     })
 
     if (response.ok) {
@@ -101,7 +165,15 @@ async function handleRegister(e: Event) {
       document.getElementById('switchToLogin')?.click()
     } else {
       const error = await response.json()
-      alert(error.detail || 'Registration failed')
+      console.error('Registration error:', error)
+      // Handle validation errors
+      if (error.error === 'INVALID_PASSWORD') {
+        alert(`Password requirements: ${error.detail}`)
+      } else if (error.detail) {
+        alert(error.detail)
+      } else {
+        alert('Registration failed. Please check your information.')
+      }
     }
   } catch (error) {
     console.error('Registration failed:', error)
@@ -121,6 +193,11 @@ async function checkSession() {
     if (response.ok) {
       currentUser = await response.json()
       updateUIForLoggedInUser()
+
+      // If user is logged in, show main app instead of landing page
+      if ((window as any).showMainApp) {
+        (window as any).showMainApp()
+      }
     } else {
       localStorage.removeItem('token')
     }
@@ -133,6 +210,7 @@ function updateUIForLoggedInUser() {
   const loginBtn = document.getElementById('loginBtn')
   const userMenu = document.getElementById('userMenu')
   const username = document.getElementById('username')
+  const uploadBtn = document.getElementById('uploadBtn')
 
   if (currentUser) {
     loginBtn?.classList.add('hidden')
@@ -140,6 +218,16 @@ function updateUIForLoggedInUser() {
     if (username) {
       username.textContent = currentUser.name
     }
+
+    // Enable upload button
+    if (uploadBtn) {
+      uploadBtn.removeAttribute('disabled')
+      uploadBtn.style.opacity = '1'
+      uploadBtn.style.cursor = 'pointer'
+    }
+
+    // Load user's files after successful login
+    loadUserFiles()
   }
 }
 
@@ -149,15 +237,26 @@ function logout() {
 
   const loginBtn = document.getElementById('loginBtn')
   const userMenu = document.getElementById('userMenu')
+  const uploadBtn = document.getElementById('uploadBtn')
 
   loginBtn?.classList.remove('hidden')
   userMenu?.classList.add('hidden')
+
+  // Disable upload button
+  if (uploadBtn) {
+    uploadBtn.setAttribute('disabled', 'true')
+    uploadBtn.style.opacity = '0.5'
+    uploadBtn.style.cursor = 'not-allowed'
+  }
 
   // Clear file list
   const fileList = document.getElementById('fileList')
   if (fileList) {
     fileList.innerHTML = ''
   }
+
+  // Clear loaded models from the 3D scene
+  clearLoadedModels()
 }
 
 export function getCurrentUser() {
